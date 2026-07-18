@@ -9,8 +9,9 @@ buckets.
   it from the CLI, import it anywhere, or wire it into any scheduler.
 - **Multi-provider by config** — Anthropic first (your number one 🥇), OpenAI /
   Codex included as an example. Add more by implementing one interface.
-- **Free scheduling via GitHub Actions** — a workflow pings every few hours and
-  keeps itself alive. No server, no hosting bill.
+- **Free, multi-agent scheduling via GitHub Actions** — one reusable workflow +
+  a thin caller per agent (Claude live, Codex seeded/disabled). Each pings on its
+  own schedule and keeps itself alive. No server, no hosting bill.
 
 ---
 
@@ -127,25 +128,41 @@ external cron.
 
 ## Scheduling it (GitHub Actions)
 
-The repo already lives on GitHub, so [`.github/workflows/ping.yml`](./.github/workflows/ping.yml)
-runs `npm run ping` on a schedule on a free Ubuntu runner — no hosting needed.
+Scheduling is **multi-agent** so you can keep several agents warm at once. The
+logic lives once in a reusable workflow; each agent is a thin caller:
+
+| File | Role |
+| ---- | ---- |
+| [`.github/workflows/_ping.yml`](./.github/workflows/_ping.yml) | Reusable — install, run `npm run ping`, keepalive. Not scheduled directly. |
+| [`.github/workflows/ping-claude.yml`](./.github/workflows/ping-claude.yml) | **Live.** Every 4h, `provider: anthropic`. |
+| [`.github/workflows/ping-codex.yml`](./.github/workflows/ping-codex.yml) | **Seeded but disabled.** `provider: openai`; schedule commented out. |
+
+Each caller runs `npm run ping` on a free Ubuntu runner — no hosting needed.
+
+**Turn on Claude:**
 
 1. Add your credential in **Settings → Secrets and variables → Actions → New
    repository secret**: `CLAUDE_CODE_OAUTH_TOKEN` (or `ANTHROPIC_API_KEY`).
-2. Merge this workflow to your **default branch** — ⚠️ scheduled workflows only
-   fire from the default branch. Until then, use the **Run workflow** button
-   (Actions tab) to test; it has a `dry_run` toggle.
-3. Default cadence is **every 4 hours** (`0 */4 * * *`); edit the `cron:` line to
+2. Merge to your **default branch** — ⚠️ scheduled workflows only fire from the
+   default branch. Until then, use the **Run workflow** button (Actions tab) to
+   test; each caller has a `dry_run` toggle.
+3. Cadence is `0 */4 * * *` (every 4h); edit the `cron:` line in the caller to
    taste. GitHub may delay scheduled runs a few minutes under load — fine here.
+
+**Add another agent** (or enable Codex): copy a caller, set `agent:` /
+`provider:` (and offset the `cron:` a few minutes so they don't fire at once),
+add that provider's secret, and — for `openai` — nothing else, `_ping.yml`
+installs the `openai` package automatically. Enable Codex by uncommenting the
+`schedule:` block in `ping-codex.yml`.
 
 Free minutes are a non-issue: public repos are unlimited, and a 4-hour ping on a
 private repo uses ~180 of the 2,000 free minutes/month.
 
 > **The one gotcha:** GitHub auto-disables scheduled workflows after **60 days
-> with no commits**. The workflow handles this itself — if the repo has been
-> quiet for 45+ days it makes a tiny `last-ping.txt` keepalive commit, so it
-> never goes idle. (This needs no setup; it's why the workflow has
-> `permissions: contents: write`.)
+> with no commits**. `_ping.yml` handles this — if the repo has been quiet for
+> 45+ days it writes a tiny [`keepalive/<agent>.txt`](./keepalive/) commit, so
+> the schedule never goes idle. Per-agent files mean concurrent agents don't
+> collide. (No setup needed; it's why the callers grant `contents: write`.)
 
 Prefer a different scheduler? The core is just a CLI — anything that can run
 `npm run ping` on a timer (a cron box, Cloudflare Workers, etc.) works too.
@@ -178,5 +195,9 @@ src/
       openai.ts         # optional OpenAI/Codex example
   cli.ts                # `npm run ping`
 .github/workflows/
-  ping.yml              # scheduled run (every 4h) + keepalive
+  _ping.yml             # reusable: install + run + keepalive
+  ping-claude.yml       # live caller (every 4h, anthropic)
+  ping-codex.yml        # seeded/disabled caller (openai)
+keepalive/
+  <agent>.txt           # per-agent keepalive markers (auto-written)
 ```

@@ -1,0 +1,92 @@
+name: _ping (reusable)
+
+# Shared ping logic. Not scheduled directly — each agent has a thin caller
+# workflow (ping-<agent>.yml) that sets its own schedule and calls this with
+# its provider + secrets. Add an agent = add a ~15-line caller; the install,
+# run, and keepalive logic lives here once.
+
+on:
+  workflow_call:
+    inputs:
+      agent:
+        description: "Short agent id, used for labels + keepalive/<agent>.txt"
+        required: true
+        type: string
+      provider:
+        description: "PING_PROVIDER (anthropic | openai | ...)"
+        required: true
+        type: string
+      model:
+        description: "Optional PING_MODEL override; empty = provider default"
+        required: false
+        type: string
+        default: ""
+      dry_run:
+        description: "Resolve config but send no request"
+        required: false
+        type: boolean
+        default: false
+    # Callers pass `secrets: inherit`; the provider auto-detects from env below.
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # `openai` is an optional dependency, only needed for openai/codex agents.
+      - name: Install optional provider deps
+        if: ${{ inputs.provider == 'openai' }}
+        run: npm install --no-save openai
+
+      - name: Send ping (${{ inputs.agent }})
+        env:
+          PING_PROVIDER: ${{ inputs.provider }}
+          PING_MODEL: ${{ inputs.model }}
+          # All repo secrets are inherited; the selected provider uses whichever
+          # it needs. Unset ones expand to "" and are ignored.
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            npm run ping -- --dry-run
+          else
+            npm run ping
+          fi
+
+      # Prevents the 60-day "inactive repo" auto-disable of scheduled workflows.
+      # Per-agent file under keepalive/ so multiple agents never collide. Only
+      # commits when the repo has actually gone quiet, so history stays clean —
+      # and whichever agent runs first in a quiet stretch resets the timer, so
+      # the others see recent activity and skip (no concurrent-push race).
+      - name: Keep the schedule alive
+        if: ${{ github.event_name == 'schedule' }}
+        env:
+          AGENT: ${{ inputs.agent }}
+        run: |
+          THRESHOLD_DAYS=45
+          LAST=$(git log -1 --format=%ct 2>/dev/null || echo 0)
+          NOW=$(date +%s)
+          AGE_DAYS=$(( (NOW - LAST) / 86400 ))
+          echo "Days since last commit: $AGE_DAYS (threshold: $THRESHOLD_DAYS)"
+          if [ "$AGE_DAYS" -lt "$THRESHOLD_DAYS" ]; then
+            echo "Repo active recently — no keepalive commit needed."
+            exit 0
+          fi
+          mkdir -p keepalive
+          date -u +"last keepalive: %Y-%m-%dT%H:%M:%SZ" > "keepalive/${AGENT}.txt"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "keepalive/${AGENT}.txt"
+          git commit -m "chore(${AGENT}): keepalive commit to keep scheduled ping enabled [skip ci]"
+          git push

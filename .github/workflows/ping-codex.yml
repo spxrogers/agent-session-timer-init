@@ -1,0 +1,38 @@
+name: Session ping (codex)
+
+# ⚠️ SEED / DISABLED — end-to-end concept for keeping a SECOND agent warm
+# alongside Claude. It demonstrates the multi-agent pattern but does NOT run on
+# a schedule yet (the `schedule` block below is intentionally commented out), so
+# it costs nothing until you turn it on.
+#
+# To activate:
+#   1. Add an OPENAI_API_KEY repository secret.
+#   2. Uncomment the `schedule` block below (offset from Claude so they don't
+#      fire at the same minute).
+# (`npm install openai` is handled automatically by _ping.yml for this provider.)
+
+on:
+  # schedule:
+  #   - cron: "20 */4 * * *"   # offset 20 min from ping-claude
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Resolve config but send no request"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ping-codex
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    uses: ./.github/workflows/_ping.yml
+    with:
+      agent: codex
+      provider: openai
+      dry_run: ${{ inputs.dry_run || false }}
+    secrets: inherit

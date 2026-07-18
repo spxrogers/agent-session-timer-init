@@ -1,0 +1,33 @@
+name: Session ping (claude)
+
+# Keeps a Claude session window warm. Thin caller — all logic is in _ping.yml.
+#
+# NOTE: `schedule` triggers only run from the repository's DEFAULT branch. This
+# won't fire on its own until merged to main. Use "Run workflow" to test.
+
+on:
+  schedule:
+    # Every 4 hours (UTC), on the hour — comfortably under the ~5-hour window.
+    - cron: "0 */4 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Resolve config but send no request"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ping-claude
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    uses: ./.github/workflows/_ping.yml
+    with:
+      agent: claude
+      provider: anthropic
+      dry_run: ${{ inputs.dry_run || false }}
+    secrets: inherit
