@@ -1,4 +1,4 @@
-# Agent Session Timer 👋
+# agent-session-timer-init 👋
 
 A small, provider-agnostic wrapper around AI agent SDKs that sends a **dirt-cheap
 "hello 👋"** (Haiku by default) on a schedule. Each ping starts / refreshes a
