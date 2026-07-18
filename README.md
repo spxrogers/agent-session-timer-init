@@ -86,7 +86,7 @@ import { ping } from "./src/core";
 
 const result = await ping();                 // uses env config
 const dry = await ping({ dryRun: true });    // no network call
-const oai = await ping({ provider: "openai", model: "gpt-4o-mini" });
+const oai = await ping({ provider: "openai", model: "gpt-5-nano" });
 ```
 
 `ping()` never throws — failures come back as `{ ok: false, error }` so
@@ -182,7 +182,8 @@ npm install openai
 PING_PROVIDER=openai OPENAI_API_KEY=sk-... npm run ping
 ```
 
-Defaults to `gpt-4o-mini`; override with `PING_MODEL`.
+Defaults to `gpt-5-nano` with reasoning turned off (OpenAI's newest/cheapest
+tier); override with `PING_MODEL`.
 
 ---
 

@@ -9,7 +9,11 @@ import type { PingProviderRequest, Provider, ProviderPingResponse } from "../typ
  *
  * Install it when you want to use this provider:  npm install openai
  */
-const DEFAULT_MODEL = "gpt-4o-mini";
+// gpt-5-nano is OpenAI's newest + cheapest tier ($0.05/$0.40 per 1M) and the
+// recommended successor to the now-deprecating 4o-mini / 4.1-nano models — a
+// better long-term default. It's a reasoning model, so ping() turns reasoning
+// off (below) to keep the keepalive dirt cheap.
+const DEFAULT_MODEL = "gpt-5-nano";
 
 export function createOpenAIProvider(): Provider {
   return {
@@ -24,13 +28,21 @@ export function createOpenAIProvider(): Provider {
       const OpenAI = await loadOpenAI();
       const client = new OpenAI({ apiKey });
 
-      const response = await client.responses.create({
+      const params: Record<string, unknown> = {
         model,
         input: message,
         // The Responses API rejects max_output_tokens < 16; the shared default
         // is 16, but clamp in case PING_MAX_TOKENS is set lower for Anthropic.
         max_output_tokens: Math.max(16, maxTokens),
-      });
+      };
+      // GPT-5 models reason by default; disable it so a keepalive ping doesn't
+      // spend its tiny token budget (and money) on chain-of-thought. Only sent
+      // for gpt-5* so a non-reasoning override model isn't handed a bad param.
+      if (model.startsWith("gpt-5")) {
+        params.reasoning = { effort: "none" };
+      }
+
+      const response = await client.responses.create(params);
 
       return {
         model: response.model ?? model,
