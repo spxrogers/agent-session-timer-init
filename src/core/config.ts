@@ -4,7 +4,7 @@ import type { ProviderName } from "./types";
  * Resolved configuration for a single ping.
  *
  * Everything is driven by environment variables so the same core runs
- * unchanged from the CLI, a Vercel cron route, or a test. Any field can be
+ * unchanged from the CLI, a scheduled job, or a test. Any field can be
  * overridden programmatically via {@link loadConfig}'s argument.
  */
 export interface PingConfig {

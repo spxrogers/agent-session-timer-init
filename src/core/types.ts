@@ -3,8 +3,8 @@
  *
  * The core is deliberately provider-agnostic: adding a new provider (OpenAI /
  * Codex, Gemini, ...) means implementing the {@link Provider} interface and
- * registering it in `./index.ts`. Nothing here imports Next.js — the core is a
- * plain, scriptable TypeScript module.
+ * registering it in `./index.ts`. Nothing here imports a web framework — the
+ * core is a plain, scriptable TypeScript module.
  */
 
 export type ProviderName = "anthropic" | "openai";

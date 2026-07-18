@@ -9,8 +9,8 @@ buckets.
   it from the CLI, import it anywhere, or wire it into any scheduler.
 - **Multi-provider by config** — Anthropic first (your number one 🥇), OpenAI /
   Codex included as an example. Add more by implementing one interface.
-- **Next.js ingress harness** — an `/api/cron` route ready to deploy to Vercel
-  and run on a schedule via Vercel Cron.
+- **Free scheduling via GitHub Actions** — a workflow pings every few hours and
+  keeps itself alive. No server, no hosting bill.
 
 ---
 
@@ -107,7 +107,7 @@ schedulers and HTTP handlers stay simple.
    `Provider` (see `types.ts`).
 2. Add a `case` in `getProvider()` in `src/core/index.ts`.
 
-That's it — the CLI and the API route pick it up automatically.
+That's it — the CLI and the scheduled workflow pick it up automatically.
 
 ---
 
@@ -125,14 +125,9 @@ external cron.
 
 ---
 
-## Scheduling it
+## Scheduling it (GitHub Actions)
 
-You don't need a server — you just need something to run the ping every few
-hours. Pick whichever you like; the core doesn't care who calls it.
-
-### Option A — GitHub Actions (recommended, free) ⭐
-
-The repo already lives on GitHub, so [`​.github/workflows/ping.yml`](./.github/workflows/ping.yml)
+The repo already lives on GitHub, so [`.github/workflows/ping.yml`](./.github/workflows/ping.yml)
 runs `npm run ping` on a schedule on a free Ubuntu runner — no hosting needed.
 
 1. Add your credential in **Settings → Secrets and variables → Actions → New
@@ -152,21 +147,8 @@ private repo uses ~180 of the 2,000 free minutes/month.
 > never goes idle. (This needs no setup; it's why the workflow has
 > `permissions: contents: write`.)
 
-### Option B — Vercel (this repo's `/api/cron` route)
-
-1. Import the repo into Vercel; set `CLAUDE_CODE_OAUTH_TOKEN` (or
-   `ANTHROPIC_API_KEY`) and a random `CRON_SECRET` in the project env.
-2. The schedule lives in [`vercel.json`](./vercel.json).
-
-```bash
-curl -H "Authorization: Bearer $CRON_SECRET" https://<your-app>/api/cron
-curl -H "Authorization: Bearer $CRON_SECRET" "https://<your-app>/api/cron?dryRun=1"
-```
-
-> **Vercel plan note:** Hobby caps Vercel's *built-in* cron at **once per day**;
-> the 4-hour cadence needs **Pro**. But that limit is only on Vercel's own
-> scheduler — an **external** free cron (GitHub Actions, [cron-job.org](https://cron-job.org),
-> Google Cloud Scheduler) can hit your deployed `/api/cron` as often as you want.
+Prefer a different scheduler? The core is just a CLI — anything that can run
+`npm run ping` on a timer (a cron box, Cloudflare Workers, etc.) works too.
 
 ---
 
@@ -195,9 +177,6 @@ src/
       anthropic.ts      # Anthropic (Haiku), OAuth or API-key auth
       openai.ts         # optional OpenAI/Codex example
   cli.ts                # `npm run ping`
-  app/                  # Next.js App Router (ingress harness)
-    layout.tsx
-    page.tsx            # status page
-    api/cron/route.ts   # scheduled ping endpoint
-vercel.json             # cron schedule
+.github/workflows/
+  ping.yml              # scheduled run (every 4h) + keepalive
 ```

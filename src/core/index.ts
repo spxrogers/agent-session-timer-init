@@ -2,9 +2,8 @@ import { loadConfig, type PingConfig } from "./config";
 import type { PingResult, Provider, ProviderName } from "./types";
 
 /**
- * Provider registry. Modules are imported lazily so that:
- *   - selecting `anthropic` never loads the optional `openai` code, and
- *   - the Next.js bundle only includes what a given deployment uses.
+ * Provider registry. Modules are imported lazily so that selecting `anthropic`
+ * never loads the optional `openai` code (and vice versa).
  *
  * To add a provider: implement the `Provider` interface in `./providers/<name>.ts`
  * and add a case here.

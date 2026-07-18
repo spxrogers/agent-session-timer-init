@@ -5,7 +5,7 @@ import type { PingProviderRequest, Provider, ProviderPingResponse } from "../typ
  *
  * The `openai` package is an OPTIONAL dependency — it is loaded lazily and only
  * when you actually select this provider (PING_PROVIDER=openai). This keeps the
- * default Anthropic install lean and the Next.js bundle from pulling it in.
+ * default Anthropic install lean.
  *
  * Install it when you want to use this provider:  npm install openai
  */
