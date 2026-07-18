@@ -13,7 +13,7 @@ name: Session ping (codex)
 
 on:
   # schedule:
-  #   - cron: "30 * * * *"   # offset 30 min from ping-claude (hourly)
+  #   - cron: "7 * * * *"   # a quiet minute, offset ~30 min from ping-claude's :37
   workflow_dispatch:
     inputs:
       dry_run:

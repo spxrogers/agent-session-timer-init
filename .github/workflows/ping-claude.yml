@@ -7,9 +7,12 @@ name: Session ping (claude)
 
 on:
   schedule:
-    # Top of every hour (UTC). Cheap insurance (1 Haiku ping/hour) so a manual
-    # session started off-cycle is never left waiting for the window to warm.
-    - cron: "0 * * * *"
+    # Once an hour at :37 (UTC) — a quiet, off-peak minute. `0 * * * *` is
+    # GitHub's most congested slot (everyone piles on the top of the hour), so
+    # scheduled runs there get delayed or dropped; an odd minute is far more
+    # reliable. Cheap insurance (1 Haiku ping/hour) so a manual session started
+    # off-cycle is never left waiting for the window to warm.
+    - cron: "37 * * * *"
   workflow_dispatch:
     inputs:
       dry_run:
