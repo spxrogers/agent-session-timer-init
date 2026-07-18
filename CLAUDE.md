@@ -5,9 +5,9 @@
 > Direct edits here are reported as drift and overwritten on the next apply.
 <!-- /agentsync:managed memory-banner -->
 
-# CLAUDE.md
+# Repository guide
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to AI coding agents when working with code in this repository.
 
 ## What this is
 
