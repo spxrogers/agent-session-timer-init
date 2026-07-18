@@ -147,9 +147,11 @@ Each caller runs `npm run ping` on a free Ubuntu runner — no hosting needed.
 2. Merge to your **default branch** — ⚠️ scheduled workflows only fire from the
    default branch. Until then, use the **Run workflow** button (Actions tab) to
    test; each caller has a `dry_run` toggle.
-3. Cadence is `0 * * * *` (top of every hour) so a manual session started
+3. Cadence is `37 * * * *` (hourly, at :37) so a manual session started
    off-cycle isn't left waiting; edit the `cron:` line in the caller to taste.
-   GitHub may delay scheduled runs a few minutes under load — fine here.
+   The odd minute is deliberate — `0 * * * *` is GitHub's most congested slot
+   and scheduled runs there get delayed or dropped, so an off-peak minute is
+   more reliable.
 
 **Add another agent** (or enable Codex): copy a caller, set `agent:` /
 `provider:` (and offset the `cron:` a few minutes so they don't fire at once),
