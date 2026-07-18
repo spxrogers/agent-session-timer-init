@@ -85,6 +85,10 @@ function createClient(): { client: Anthropic; authMode: string } {
   );
 }
 
+// Returns the trimmed credential, or undefined if empty/whitespace. Trimming
+// guards against a trailing newline in a copied token / secret reaching the
+// Authorization header.
 function nonEmpty(value: string | undefined): string | undefined {
-  return value && value.trim().length > 0 ? value : undefined;
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
 }

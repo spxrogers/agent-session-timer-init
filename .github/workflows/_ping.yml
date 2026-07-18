@@ -4,6 +4,10 @@ name: _ping (reusable)
 # workflow (ping-<agent>.yml) that sets its own schedule and calls this with
 # its provider + secrets. Add an agent = add a ~15-line caller; the install,
 # run, and keepalive logic lives here once.
+#
+# Callers MUST grant `permissions: contents: write` (the ping-*.yml callers do)
+# — a reusable workflow inherits the caller's token scope, and the keepalive
+# step below pushes a commit. Without it the push 403s and the keepalive no-ops.
 
 on:
   workflow_call:
