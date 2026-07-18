@@ -135,7 +135,7 @@ logic lives once in a reusable workflow; each agent is a thin caller:
 | File | Role |
 | ---- | ---- |
 | [`.github/workflows/_ping.yml`](./.github/workflows/_ping.yml) | Reusable — install, run `npm run ping`, keepalive. Not scheduled directly. |
-| [`.github/workflows/ping-claude.yml`](./.github/workflows/ping-claude.yml) | **Live.** Every 4h, `provider: anthropic`. |
+| [`.github/workflows/ping-claude.yml`](./.github/workflows/ping-claude.yml) | **Live.** Hourly, `provider: anthropic`. |
 | [`.github/workflows/ping-codex.yml`](./.github/workflows/ping-codex.yml) | **Seeded but disabled.** `provider: openai`; schedule commented out. |
 
 Each caller runs `npm run ping` on a free Ubuntu runner — no hosting needed.
@@ -147,8 +147,9 @@ Each caller runs `npm run ping` on a free Ubuntu runner — no hosting needed.
 2. Merge to your **default branch** — ⚠️ scheduled workflows only fire from the
    default branch. Until then, use the **Run workflow** button (Actions tab) to
    test; each caller has a `dry_run` toggle.
-3. Cadence is `0 */4 * * *` (every 4h); edit the `cron:` line in the caller to
-   taste. GitHub may delay scheduled runs a few minutes under load — fine here.
+3. Cadence is `0 * * * *` (top of every hour) so a manual session started
+   off-cycle isn't left waiting; edit the `cron:` line in the caller to taste.
+   GitHub may delay scheduled runs a few minutes under load — fine here.
 
 **Add another agent** (or enable Codex): copy a caller, set `agent:` /
 `provider:` (and offset the `cron:` a few minutes so they don't fire at once),
@@ -156,8 +157,8 @@ add that provider's secret, and — for `openai` — nothing else, `_ping.yml`
 installs the `openai` package automatically. Enable Codex by uncommenting the
 `schedule:` block in `ping-codex.yml`.
 
-Free minutes are a non-issue: public repos are unlimited, and a 4-hour ping on a
-private repo uses ~180 of the 2,000 free minutes/month.
+Free minutes are a non-issue: public repos are unlimited, and an hourly ping on a
+private repo uses roughly 720 of the 2,000 free minutes/month.
 
 > **The one gotcha:** GitHub auto-disables scheduled workflows after **60 days
 > with no commits**. `_ping.yml` handles this — if the repo has been quiet for
@@ -199,7 +200,7 @@ src/
   cli.ts                # `npm run ping`
 .github/workflows/
   _ping.yml             # reusable: install + run + keepalive
-  ping-claude.yml       # live caller (every 4h, anthropic)
+  ping-claude.yml       # live caller (hourly, anthropic)
   ping-codex.yml        # seeded/disabled caller (openai)
 .keep-alive.txt         # sparse keepalive log (auto-written, ~1 line / 45d)
 ```

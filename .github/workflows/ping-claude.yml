@@ -7,8 +7,9 @@ name: Session ping (claude)
 
 on:
   schedule:
-    # Every 4 hours (UTC), on the hour — comfortably under the ~5-hour window.
-    - cron: "0 */4 * * *"
+    # Top of every hour (UTC). Cheap insurance (1 Haiku ping/hour) so a manual
+    # session started off-cycle is never left waiting for the window to warm.
+    - cron: "0 * * * *"
   workflow_dispatch:
     inputs:
       dry_run:
