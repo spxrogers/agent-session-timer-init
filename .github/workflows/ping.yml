@@ -1,0 +1,76 @@
+name: Session ping
+
+# Keeps a Claude session window warm by sending a tiny "hello 👋" on a schedule.
+#
+# NOTE: `schedule` triggers only run from the repository's DEFAULT branch. This
+# workflow won't fire on its own until it's merged to main. Use the "Run
+# workflow" button (workflow_dispatch) to test from any branch in the meantime.
+
+on:
+  schedule:
+    # Every 4 hours (UTC) — comfortably under the ~5-hour window.
+    # GitHub may delay scheduled runs during peak load; fine for a keepalive.
+    - cron: "0 */4 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (resolve config, send no request)"
+        type: boolean
+        default: false
+
+# Allow the keepalive step to push a commit back to the repo.
+permissions:
+  contents: write
+
+concurrency:
+  group: session-ping
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Send ping
+        env:
+          # Set ONE of these in Settings → Secrets and variables → Actions.
+          # OAuth token (from `claude setup-token`) warms your subscription bucket.
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            npm run ping -- --dry-run
+          else
+            npm run ping
+          fi
+
+      # Prevents the 60-day "inactive repo" auto-disable of scheduled workflows.
+      # Only commits when the repo has actually gone quiet, so history stays clean.
+      - name: Keep the schedule alive
+        if: ${{ github.event_name == 'schedule' }}
+        run: |
+          THRESHOLD_DAYS=45
+          LAST=$(git log -1 --format=%ct 2>/dev/null || echo 0)
+          NOW=$(date +%s)
+          AGE_DAYS=$(( (NOW - LAST) / 86400 ))
+          echo "Days since last commit: $AGE_DAYS (threshold: $THRESHOLD_DAYS)"
+          if [ "$AGE_DAYS" -lt "$THRESHOLD_DAYS" ]; then
+            echo "Repo active recently — no keepalive commit needed."
+            exit 0
+          fi
+          date -u +"last keepalive: %Y-%m-%dT%H:%M:%SZ" > last-ping.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add last-ping.txt
+          git commit -m "chore: keepalive commit to keep scheduled ping enabled [skip ci]"
+          git push

@@ -125,26 +125,48 @@ external cron.
 
 ---
 
-## Deploy to Vercel (scheduled)
+## Scheduling it
 
-1. Push this repo and import it into Vercel.
-2. Set environment variables in the Vercel project:
-   - `CLAUDE_CODE_OAUTH_TOKEN` (or `ANTHROPIC_API_KEY`)
-   - `CRON_SECRET` — a random string. Vercel Cron automatically sends it as
-     `Authorization: Bearer <CRON_SECRET>`, and `/api/cron` requires it.
-3. The schedule lives in [`vercel.json`](./vercel.json) — default **every 4
-   hours** (`0 */4 * * *`), comfortably under the 5-hour window.
+You don't need a server — you just need something to run the ping every few
+hours. Pick whichever you like; the core doesn't care who calls it.
 
-Trigger manually:
+### Option A — GitHub Actions (recommended, free) ⭐
+
+The repo already lives on GitHub, so [`​.github/workflows/ping.yml`](./.github/workflows/ping.yml)
+runs `npm run ping` on a schedule on a free Ubuntu runner — no hosting needed.
+
+1. Add your credential in **Settings → Secrets and variables → Actions → New
+   repository secret**: `CLAUDE_CODE_OAUTH_TOKEN` (or `ANTHROPIC_API_KEY`).
+2. Merge this workflow to your **default branch** — ⚠️ scheduled workflows only
+   fire from the default branch. Until then, use the **Run workflow** button
+   (Actions tab) to test; it has a `dry_run` toggle.
+3. Default cadence is **every 4 hours** (`0 */4 * * *`); edit the `cron:` line to
+   taste. GitHub may delay scheduled runs a few minutes under load — fine here.
+
+Free minutes are a non-issue: public repos are unlimited, and a 4-hour ping on a
+private repo uses ~180 of the 2,000 free minutes/month.
+
+> **The one gotcha:** GitHub auto-disables scheduled workflows after **60 days
+> with no commits**. The workflow handles this itself — if the repo has been
+> quiet for 45+ days it makes a tiny `last-ping.txt` keepalive commit, so it
+> never goes idle. (This needs no setup; it's why the workflow has
+> `permissions: contents: write`.)
+
+### Option B — Vercel (this repo's `/api/cron` route)
+
+1. Import the repo into Vercel; set `CLAUDE_CODE_OAUTH_TOKEN` (or
+   `ANTHROPIC_API_KEY`) and a random `CRON_SECRET` in the project env.
+2. The schedule lives in [`vercel.json`](./vercel.json).
 
 ```bash
 curl -H "Authorization: Bearer $CRON_SECRET" https://<your-app>/api/cron
 curl -H "Authorization: Bearer $CRON_SECRET" "https://<your-app>/api/cron?dryRun=1"
 ```
 
-> **Vercel plan note:** Hobby projects run cron jobs at most **once per day**.
-> The 4-hour cadence needs a **Pro** plan. On Hobby, change the schedule to e.g.
-> `0 9 * * *` (daily) — or run the CLI from your own scheduler.
+> **Vercel plan note:** Hobby caps Vercel's *built-in* cron at **once per day**;
+> the 4-hour cadence needs **Pro**. But that limit is only on Vercel's own
+> scheduler — an **external** free cron (GitHub Actions, [cron-job.org](https://cron-job.org),
+> Google Cloud Scheduler) can hit your deployed `/api/cron` as often as you want.
 
 ---
 

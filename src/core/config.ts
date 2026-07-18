@@ -25,10 +25,10 @@ export function loadConfig(overrides: Partial<PingConfig> = {}): PingConfig {
   return {
     provider:
       overrides.provider ??
-      (process.env.PING_PROVIDER as ProviderName | undefined) ??
+      (emptyToUndefined(process.env.PING_PROVIDER) as ProviderName | undefined) ??
       DEFAULT_PROVIDER,
     model: overrides.model ?? emptyToUndefined(process.env.PING_MODEL),
-    message: overrides.message ?? process.env.PING_MESSAGE ?? DEFAULT_MESSAGE,
+    message: overrides.message ?? emptyToUndefined(process.env.PING_MESSAGE) ?? DEFAULT_MESSAGE,
     maxTokens: overrides.maxTokens ?? intFromEnv("PING_MAX_TOKENS", DEFAULT_MAX_TOKENS),
     dryRun: overrides.dryRun ?? boolFromEnv("PING_DRY_RUN", false),
   };
