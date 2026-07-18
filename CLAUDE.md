@@ -14,8 +14,12 @@ not "upgrade" the default to Opus.**
 ## Commands
 
 - `npm install`
-- `npm run typecheck` — `tsc --noEmit`; this is the primary correctness gate.
-  **There is no test suite.**
+- `npm run typecheck` — `tsc --noEmit`; the primary correctness gate.
+- `npm test` — a small assertion set (`test/`, `node --test` via `tsx`) guarding
+  the highest-risk contracts: auth resolution (`resolveAnthropicAuth`), config
+  precedence / empty-string handling, and `ping()` never throwing. Intentionally
+  minimal — extend it, don't grow a broad suite. CI (`.github/workflows/ci.yml`)
+  runs typecheck + test + dry-run on every PR.
 - `npm run ping` — run the ping using env config.
 - `npm run ping -- --dry-run` — resolve config and exit with no network call.
   Use this to smoke-test changes without credentials.

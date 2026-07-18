@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 
-import type { PingProviderRequest, Provider, ProviderPingResponse } from "../types";
+import { envValue } from "../env";
+import type { AuthMode, PingProviderRequest, Provider, ProviderPingResponse } from "../types";
 
 /**
  * Dirt-cheap by default. Haiku is Anthropic's least expensive current model,
@@ -43,41 +44,34 @@ export function createAnthropicProvider(): Provider {
   };
 }
 
+export type AnthropicAuth =
+  | { mode: "oauth"; token: string }
+  | { mode: "api-key"; apiKey: string };
+
 /**
- * Auth auto-detection, in priority order:
+ * Resolve which auth mode to use from the environment. Pure and exported so the
+ * branch — the core domain nuance — is unit-testable without a network call.
+ * Priority order (and the difference between them) is the point of the project:
  *
- *   1. CLAUDE_CODE_OAUTH_TOKEN / ANTHROPIC_AUTH_TOKEN  -> subscription (OAuth) mode.
- *      This authenticates as your Claude plan and *consumes your subscription's
- *      usage window* — i.e. it starts/keeps a session "bucket" warm. This is the
- *      mode you want for the "never idle" goal. Generate a long-lived token with
+ *   1. CLAUDE_CODE_OAUTH_TOKEN / ANTHROPIC_AUTH_TOKEN -> subscription (OAuth) mode.
+ *      Authenticates as your Claude plan and *consumes your subscription's usage
+ *      window* — i.e. warms a session "bucket." Generate a long-lived token with
  *      `claude setup-token`.
+ *   2. ANTHROPIC_API_KEY -> pay-per-token API mode. A health check that does NOT
+ *      touch subscription buckets.
  *
- *   2. ANTHROPIC_API_KEY -> standard pay-per-token API mode. Fine for a health
- *      check, but API usage is billed separately and does NOT touch your
- *      subscription buckets.
+ * Empty/whitespace values are treated as unset (and tokens are trimmed) so an
+ * empty CLAUDE_CODE_OAUTH_TOKEN= line doesn't shadow the ANTHROPIC_AUTH_TOKEN
+ * alias, and a copied trailing newline never reaches the Authorization header.
  */
-function createClient(): { client: Anthropic; authMode: string } {
-  // Treat empty/whitespace as unset (like config.ts) BEFORE `??`, so an empty
-  // CLAUDE_CODE_OAUTH_TOKEN= line doesn't shadow the ANTHROPIC_AUTH_TOKEN alias.
-  const oauthToken = nonEmpty(process.env.CLAUDE_CODE_OAUTH_TOKEN) ?? nonEmpty(process.env.ANTHROPIC_AUTH_TOKEN);
-  const apiKey = nonEmpty(process.env.ANTHROPIC_API_KEY);
+export function resolveAnthropicAuth(env: NodeJS.ProcessEnv = process.env): AnthropicAuth {
+  const oauthToken =
+    envValue(env.CLAUDE_CODE_OAUTH_TOKEN, { trim: true }) ??
+    envValue(env.ANTHROPIC_AUTH_TOKEN, { trim: true });
+  const apiKey = envValue(env.ANTHROPIC_API_KEY, { trim: true });
 
-  if (oauthToken) {
-    // Pass apiKey: null so the SDK does not also read ANTHROPIC_API_KEY from the
-    // environment and send both credentials (the API rejects that).
-    return {
-      client: new Anthropic({
-        apiKey: null,
-        authToken: oauthToken,
-        defaultHeaders: { "anthropic-beta": OAUTH_BETA_HEADER },
-      }),
-      authMode: "oauth",
-    };
-  }
-
-  if (apiKey) {
-    return { client: new Anthropic({ apiKey }), authMode: "api-key" };
-  }
+  if (oauthToken) return { mode: "oauth", token: oauthToken };
+  if (apiKey) return { mode: "api-key", apiKey };
 
   throw new Error(
     "No Anthropic credentials found. Set CLAUDE_CODE_OAUTH_TOKEN (recommended — warms " +
@@ -85,10 +79,21 @@ function createClient(): { client: Anthropic; authMode: string } {
   );
 }
 
-// Returns the trimmed credential, or undefined if empty/whitespace. Trimming
-// guards against a trailing newline in a copied token / secret reaching the
-// Authorization header.
-function nonEmpty(value: string | undefined): string | undefined {
-  const trimmed = value?.trim();
-  return trimmed ? trimmed : undefined;
+function createClient(): { client: Anthropic; authMode: AuthMode } {
+  const auth = resolveAnthropicAuth();
+
+  if (auth.mode === "oauth") {
+    // Pass apiKey: null so the SDK does not also read ANTHROPIC_API_KEY from the
+    // environment and send both credentials (the API rejects that).
+    return {
+      client: new Anthropic({
+        apiKey: null,
+        authToken: auth.token,
+        defaultHeaders: { "anthropic-beta": OAUTH_BETA_HEADER },
+      }),
+      authMode: "oauth",
+    };
+  }
+
+  return { client: new Anthropic({ apiKey: auth.apiKey }), authMode: "api-key" };
 }

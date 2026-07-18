@@ -5,6 +5,7 @@
   "description": "A tiny wrapper around AI agent SDKs that sends a cheap 'hello 👋' on a schedule to keep a session window warm.",
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test test/*.test.ts",
     "ping": "tsx src/cli.ts"
   },
   "dependencies": {

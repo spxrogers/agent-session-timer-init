@@ -3,9 +3,9 @@ import type { PingProviderRequest, Provider, ProviderPingResponse } from "../typ
 /**
  * Secondary example provider (OpenAI / Codex).
  *
- * The `openai` package is an OPTIONAL dependency — it is loaded lazily and only
- * when you actually select this provider (PING_PROVIDER=openai). This keeps the
- * default Anthropic install lean.
+ * The `openai` package is an optional, on-demand dependency (not declared in
+ * package.json) — it is loaded lazily and only when you actually select this
+ * provider (PING_PROVIDER=openai), keeping the default Anthropic install lean.
  *
  * Install it when you want to use this provider:  npm install openai
  */
@@ -27,7 +27,9 @@ export function createOpenAIProvider(): Provider {
       const response = await client.responses.create({
         model,
         input: message,
-        max_output_tokens: maxTokens,
+        // The Responses API rejects max_output_tokens < 16; the shared default
+        // is 16, but clamp in case PING_MAX_TOKENS is set lower for Anthropic.
+        max_output_tokens: Math.max(16, maxTokens),
       });
 
       return {

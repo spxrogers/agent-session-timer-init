@@ -173,7 +173,8 @@ Prefer a different scheduler? The core is just a CLI — anything that can run
 
 ## OpenAI / Codex (secondary example)
 
-`openai` is an **optional** dependency, loaded lazily only when selected:
+`openai` is an **optional, on-demand** dependency (not in `package.json`), loaded
+lazily only when selected:
 
 ```bash
 npm install openai

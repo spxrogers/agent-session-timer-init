@@ -1,4 +1,5 @@
 import { loadConfig, type PingConfig } from "./config";
+import { PROVIDER_NAMES } from "./types";
 import type { PingResult, Provider, ProviderName } from "./types";
 
 /**
@@ -20,7 +21,9 @@ async function getProvider(name: ProviderName): Promise<Provider> {
     }
     default: {
       const exhaustive: never = name;
-      throw new Error(`Unknown provider: ${String(exhaustive)}`);
+      throw new Error(
+        `Unknown provider "${String(exhaustive)}". Known providers: ${PROVIDER_NAMES.join(", ")}.`,
+      );
     }
   }
 }
@@ -91,9 +94,13 @@ export async function ping(overrides: Partial<PingConfig> = {}): Promise<PingRes
 
 export { loadConfig } from "./config";
 export type { PingConfig } from "./config";
+export { PROVIDER_NAMES, isProviderName } from "./types";
 export type {
+  AuthMode,
+  PingFailure,
   PingProviderRequest,
   PingResult,
+  PingSuccess,
   Provider,
   ProviderName,
   ProviderPingResponse,

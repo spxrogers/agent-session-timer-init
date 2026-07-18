@@ -30,7 +30,18 @@ on:
         required: false
         type: boolean
         default: false
-    # Callers pass `secrets: inherit`; the provider auto-detects from env below.
+    # Explicitly declared (not `secrets: inherit`) so this workflow only ever
+    # sees the credentials it needs. Callers map them; all are optional and the
+    # provider auto-detects which to use.
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN:
+        required: false
+      ANTHROPIC_AUTH_TOKEN:
+        required: false
+      ANTHROPIC_API_KEY:
+        required: false
+      OPENAI_API_KEY:
+        required: false
 
 jobs:
   ping:
@@ -56,14 +67,16 @@ jobs:
         env:
           PING_PROVIDER: ${{ inputs.provider }}
           PING_MODEL: ${{ inputs.model }}
-          # All repo secrets are inherited; the selected provider uses whichever
-          # it needs. Unset ones expand to "" and are ignored.
+          # Pass dry_run via env, not interpolated into the shell below.
+          DRY_RUN: ${{ inputs.dry_run }}
+          # The selected provider uses whichever credential it needs; unset ones
+          # expand to "" and are treated as absent.
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           ANTHROPIC_AUTH_TOKEN: ${{ secrets.ANTHROPIC_AUTH_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          if [ "${{ inputs.dry_run }}" = "true" ]; then
+          if [ "$DRY_RUN" = "true" ]; then
             npm run ping -- --dry-run
           else
             npm run ping
