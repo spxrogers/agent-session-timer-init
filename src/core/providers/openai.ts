@@ -56,9 +56,17 @@ async function loadOpenAI(): Promise<any> {
   try {
     const mod = await importModule("openai");
     return mod.default ?? mod.OpenAI ?? mod;
-  } catch {
-    throw new Error(
-      "The 'openai' package is required for the openai provider. Install it with: npm install openai",
-    );
+  } catch (err) {
+    const code = (err as { code?: string } | undefined)?.code;
+    if (code === "ERR_MODULE_NOT_FOUND" || code === "MODULE_NOT_FOUND") {
+      throw new Error(
+        "The 'openai' package is not installed. Install it with: npm install openai",
+      );
+    }
+    // Installed but failed to load — surface the real error instead of masking
+    // it as "not installed".
+    throw err instanceof Error
+      ? new Error(`Failed to load the 'openai' package: ${err.message}`, { cause: err })
+      : err;
   }
 }

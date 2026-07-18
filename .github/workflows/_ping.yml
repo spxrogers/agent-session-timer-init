@@ -55,6 +55,7 @@ jobs:
           # All repo secrets are inherited; the selected provider uses whichever
           # it needs. Unset ones expand to "" and are ignored.
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.ANTHROPIC_AUTH_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
@@ -67,10 +68,16 @@ jobs:
       # Prevents the 60-day "inactive repo" auto-disable of scheduled workflows.
       # Appends one line to ./.keep-alive.txt (agent + run id + link) only when
       # the repo has actually gone quiet, so it's a sparse log (~1 line / 45d).
-      # Whichever agent runs first in a quiet stretch resets the timer, so the
-      # others see recent activity and skip — no concurrent-push race.
+      #
+      # `!cancelled()` so this runs even when the ping step FAILED — the point is
+      # to keep the schedule alive (e.g. while you fix an expired token), which a
+      # default success()-gated step would skip, letting the workflow disable.
+      #
+      # Usually the first agent to run in a quiet stretch resets the timer and the
+      # others skip; if two enabled agents genuinely race, the rebase-retry below
+      # absorbs the non-fast-forward push.
       - name: Keep the schedule alive
-        if: ${{ github.event_name == 'schedule' }}
+        if: ${{ !cancelled() && github.event_name == 'schedule' }}
         env:
           AGENT: ${{ inputs.agent }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -90,4 +97,10 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add .keep-alive.txt
           git commit -m "chore(${AGENT}): keepalive [skip ci]"
-          git push
+          # Best-effort push; absorb a concurrent keepalive from another agent.
+          for attempt in 1 2 3; do
+            git push && exit 0
+            echo "push rejected (attempt ${attempt}) — rebasing on remote and retrying"
+            git pull --rebase origin "${GITHUB_REF_NAME}" || true
+          done
+          echo "::warning::keepalive push still failing after retries; another agent likely won the race"

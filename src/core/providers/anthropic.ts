@@ -57,8 +57,10 @@ export function createAnthropicProvider(): Provider {
  *      subscription buckets.
  */
 function createClient(): { client: Anthropic; authMode: string } {
-  const oauthToken = process.env.CLAUDE_CODE_OAUTH_TOKEN ?? process.env.ANTHROPIC_AUTH_TOKEN;
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  // Treat empty/whitespace as unset (like config.ts) BEFORE `??`, so an empty
+  // CLAUDE_CODE_OAUTH_TOKEN= line doesn't shadow the ANTHROPIC_AUTH_TOKEN alias.
+  const oauthToken = nonEmpty(process.env.CLAUDE_CODE_OAUTH_TOKEN) ?? nonEmpty(process.env.ANTHROPIC_AUTH_TOKEN);
+  const apiKey = nonEmpty(process.env.ANTHROPIC_API_KEY);
 
   if (oauthToken) {
     // Pass apiKey: null so the SDK does not also read ANTHROPIC_API_KEY from the
@@ -81,4 +83,8 @@ function createClient(): { client: Anthropic; authMode: string } {
     "No Anthropic credentials found. Set CLAUDE_CODE_OAUTH_TOKEN (recommended — warms " +
       "your Claude subscription session) or ANTHROPIC_API_KEY.",
   );
+}
+
+function nonEmpty(value: string | undefined): string | undefined {
+  return value && value.trim().length > 0 ? value : undefined;
 }

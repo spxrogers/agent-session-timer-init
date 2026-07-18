@@ -35,9 +35,9 @@ server**. Exit code is `0`/`1`, derived from `result.ok`.
   this); preserve the contract.
 - Providers resolve **lazily**: `getProvider()` `await import()`s
   `providers/<name>.ts` only for the selected provider, so choosing `anthropic`
-  never loads the `openai` code (and vice versa). **Add a provider** =
-  implement the `Provider` interface (`types.ts`) in a new `providers/*.ts` and
-  add one `case` to `getProvider()`.
+  never loads the `openai` code (and vice versa). **Add a provider** = add the
+  name to the `ProviderName` union (`types.ts`), implement the `Provider`
+  interface in a new `providers/*.ts`, and add one `case` to `getProvider()`.
 - `config.ts` (`loadConfig`) is env-driven and merges programmatic overrides.
   Empty-string env vars are treated as unset — this matters because GitHub
   Actions expands an unset `vars.*` to `""`.

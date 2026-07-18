@@ -104,9 +104,10 @@ schedulers and scripts stay simple.
 
 ### Adding a provider
 
-1. Create `src/core/providers/<name>.ts` exporting a factory that returns a
+1. Add the name to the `ProviderName` union in `src/core/types.ts`.
+2. Create `src/core/providers/<name>.ts` exporting a factory that returns a
    `Provider` (see `types.ts`).
-2. Add a `case` in `getProvider()` in `src/core/index.ts`.
+3. Add a `case` in `getProvider()` in `src/core/index.ts`.
 
 That's it — the CLI and the scheduled workflow pick it up automatically.
 
