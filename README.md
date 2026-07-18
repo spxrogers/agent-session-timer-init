@@ -160,9 +160,10 @@ private repo uses ~180 of the 2,000 free minutes/month.
 
 > **The one gotcha:** GitHub auto-disables scheduled workflows after **60 days
 > with no commits**. `_ping.yml` handles this — if the repo has been quiet for
-> 45+ days it writes a tiny [`keepalive/<agent>.txt`](./keepalive/) commit, so
-> the schedule never goes idle. Per-agent files mean concurrent agents don't
-> collide. (No setup needed; it's why the callers grant `contents: write`.)
+> 45+ days it appends one line to `./.keep-alive.txt` (timestamp, which agent,
+> and a link to the run) and commits it, so the schedule never goes idle. It's a
+> sparse log (~1 line every 45 days); the first agent to run resets the timer so
+> the others skip. (No setup needed; it's why the callers grant `contents: write`.)
 
 Prefer a different scheduler? The core is just a CLI — anything that can run
 `npm run ping` on a timer (a cron box, Cloudflare Workers, etc.) works too.
@@ -198,6 +199,5 @@ src/
   _ping.yml             # reusable: install + run + keepalive
   ping-claude.yml       # live caller (every 4h, anthropic)
   ping-codex.yml        # seeded/disabled caller (openai)
-keepalive/
-  <agent>.txt           # per-agent keepalive markers (auto-written)
+.keep-alive.txt         # sparse keepalive log (auto-written, ~1 line / 45d)
 ```

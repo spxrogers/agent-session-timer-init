@@ -9,7 +9,7 @@ on:
   workflow_call:
     inputs:
       agent:
-        description: "Short agent id, used for labels + keepalive/<agent>.txt"
+        description: "Short agent id, used for labels + the .keep-alive.txt entry"
         required: true
         type: string
       provider:
@@ -65,14 +65,15 @@ jobs:
           fi
 
       # Prevents the 60-day "inactive repo" auto-disable of scheduled workflows.
-      # Per-agent file under keepalive/ so multiple agents never collide. Only
-      # commits when the repo has actually gone quiet, so history stays clean —
-      # and whichever agent runs first in a quiet stretch resets the timer, so
-      # the others see recent activity and skip (no concurrent-push race).
+      # Appends one line to ./.keep-alive.txt (agent + run id + link) only when
+      # the repo has actually gone quiet, so it's a sparse log (~1 line / 45d).
+      # Whichever agent runs first in a quiet stretch resets the timer, so the
+      # others see recent activity and skip — no concurrent-push race.
       - name: Keep the schedule alive
         if: ${{ github.event_name == 'schedule' }}
         env:
           AGENT: ${{ inputs.agent }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           THRESHOLD_DAYS=45
           LAST=$(git log -1 --format=%ct 2>/dev/null || echo 0)
@@ -83,10 +84,10 @@ jobs:
             echo "Repo active recently — no keepalive commit needed."
             exit 0
           fi
-          mkdir -p keepalive
-          date -u +"last keepalive: %Y-%m-%dT%H:%M:%SZ" > "keepalive/${AGENT}.txt"
+          STAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          printf '%s  agent=%s  run=%s  %s\n' "$STAMP" "$AGENT" "$GITHUB_RUN_ID" "$RUN_URL" >> .keep-alive.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "keepalive/${AGENT}.txt"
-          git commit -m "chore(${AGENT}): keepalive commit to keep scheduled ping enabled [skip ci]"
+          git add .keep-alive.txt
+          git commit -m "chore(${AGENT}): keepalive [skip ci]"
           git push
