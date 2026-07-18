@@ -42,7 +42,7 @@ export interface Provider {
   ping(request: PingProviderRequest): Promise<ProviderPingResponse>;
 }
 
-/** The normalized result surfaced to callers (CLI, API route, tests). */
+/** The normalized result surfaced to callers (CLI, scheduled job, tests). */
 export interface PingResult {
   ok: boolean;
   provider: ProviderName;

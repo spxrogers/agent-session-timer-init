@@ -29,7 +29,7 @@ async function getProvider(name: ProviderName): Promise<Provider> {
  * Send a single tiny "hello 👋" ping to keep a session window warm.
  *
  * Never throws: failures are captured in `result.ok === false` with an `error`
- * message, so schedulers and HTTP handlers can report status without try/catch.
+ * message, so schedulers and scripts can report status without try/catch.
  */
 export async function ping(overrides: Partial<PingConfig> = {}): Promise<PingResult> {
   const config = loadConfig(overrides);

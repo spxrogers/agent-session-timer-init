@@ -89,7 +89,7 @@ const oai = await ping({ provider: "openai", model: "gpt-4o-mini" });
 ```
 
 `ping()` never throws — failures come back as `{ ok: false, error }` so
-schedulers and HTTP handlers stay simple.
+schedulers and scripts stay simple.
 
 ### Configuration (env vars)
 
