@@ -7,13 +7,13 @@ name: Session ping (codex)
 #
 # To activate:
 #   1. Add an OPENAI_API_KEY repository secret.
-#   2. Uncomment the `schedule` block below (offset from Claude so they don't
-#      fire at the same minute).
+#   2. Uncomment the `schedule` block below. Its minutes are interleaved with
+#      ping-claude's :07/:37 so the two agents never fire in the same minute.
 # (`npm install openai` is handled automatically by _ping.yml for this provider.)
 
 on:
   # schedule:
-  #   - cron: "7 * * * *"   # a quiet minute, offset ~30 min from ping-claude's :37
+  #   - cron: "22,52 * * * *"   # twice hourly, interleaved between ping-claude's :07/:37
   workflow_dispatch:
     inputs:
       dry_run:
